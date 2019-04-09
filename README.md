@@ -1,4 +1,4 @@
-# Dead simple clone of Apache's `ab`
+# Apache's `ab` knockoff
 
 ## Usage
 
