@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
-	"fmt"
+  "fmt"
 	"os"
   "net/http"
   "time"
+  "sync"
 )
 
 type responseMeta struct {
@@ -27,13 +28,26 @@ func main() {
 
 	host := flag.Arg(0)
 
-	fmt.Printf("reqNums %v \n", *requestNums)
-	fmt.Printf("concurrency %v \n", *concurrency)
-	fmt.Printf("ddosing %v \n", host)
+  tasks := make(chan struct{})
+  var wg sync.WaitGroup
 
-  responseMeta := get("http://httpun.org/ip")
+  for worker := 0; worker < *concurrency; worker++ {
+    wg.Add(1)
+    go func() {
+      defer wg.Done()
+      for i := range tasks {
+        meta := get(host)
+        fmt.Printf("%v %v+\n",i,  meta)
+      }
+    }()
+  }
 
-  fmt.Printf("%+v \n", responseMeta)
+  for i:=0; i < *requestNums; i++ {
+    tasks <- struct{}{}   
+  }
+
+  close(tasks)
+  wg.Wait()
 }
 
 func get(url string) *responseMeta {
