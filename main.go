@@ -26,18 +26,24 @@ func main() {
 		os.Exit(1)
 	}
 
+
 	host := flag.Arg(0)
+  fmt.Printf("🚀 Benchmarking %v (be patient)...\n", host)
 
   tasks := make(chan struct{})
   var wg sync.WaitGroup
+  var result []*responseMeta
+  var resultMux sync.Mutex
 
   for worker := 0; worker < *concurrency; worker++ {
     wg.Add(1)
     go func() {
       defer wg.Done()
       for i := range tasks {
-        meta := get(host)
-        fmt.Printf("%v %v+\n",i,  meta)
+        fmt.Println(i)
+        resultMux.Lock()
+        result = append(result, get(host))
+        resultMux.Unlock()
       }
     }()
   }
@@ -48,6 +54,16 @@ func main() {
 
   close(tasks)
   wg.Wait()
+
+  var totalTime time.Duration
+
+  for _, v:= range result {
+    totalTime += v.responseTime
+  }
+
+  mean := int(totalTime / time.Millisecond) / len(result)
+
+  fmt.Printf("Time per request: %v [ms] (mean)\n", mean)
 }
 
 func get(url string) *responseMeta {
