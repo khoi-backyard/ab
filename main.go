@@ -38,8 +38,7 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for i := range tasks {
-				fmt.Println(i)
+			for range tasks {
 				meta := get(host)
 				resultMux.Lock()
 				result = append(result, meta)
