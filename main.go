@@ -27,11 +27,12 @@ func main() {
 	}
 
 	host := flag.Arg(0)
-	fmt.Printf("🚀 Benchmarking %v (be patient)...\n", host)
+	fmt.Printf("🚀 Benchmarking %v (be patient)...\n\n", host)
 
 	tasks := make(chan struct{})
 	var wg sync.WaitGroup
 	var result []*responseMeta
+	var failedCount int
 	var resultMux sync.Mutex
 
 	for worker := 0; worker < *concurrency; worker++ {
@@ -39,8 +40,11 @@ func main() {
 		go func() {
 			defer wg.Done()
 			for range tasks {
-				meta := get(host)
+				meta, err := get(host)
 				resultMux.Lock()
+				if err != nil {
+					failedCount++
+				}
 				result = append(result, meta)
 				resultMux.Unlock()
 			}
@@ -62,21 +66,23 @@ func main() {
 
 	mean := int(totalTime/time.Millisecond) / len(result)
 
-	fmt.Printf("Time per request: %v [ms] (mean)\n", mean)
+	fmt.Printf("Complete requests : %d\n", len(result))
+	fmt.Printf("Failed requests   : %d\n", failedCount)
+	fmt.Printf("Time per request  : %v [ms] (mean)\n", mean)
 }
 
-func get(url string) *responseMeta {
+func get(url string) (*responseMeta, error) {
 	start := time.Now()
 
 	res, err := http.Get(url)
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	return &responseMeta{
 		statusCode:    res.StatusCode,
 		contentLength: res.ContentLength,
 		responseTime:  time.Now().Sub(start),
-	}
+	}, nil
 }
