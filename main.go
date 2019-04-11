@@ -44,8 +44,9 @@ func main() {
 				resultMux.Lock()
 				if err != nil {
 					failedCount++
+				} else {
+					result = append(result, meta)
 				}
-				result = append(result, meta)
 				resultMux.Unlock()
 			}
 		}()
@@ -64,11 +65,15 @@ func main() {
 		totalTime += v.responseTime
 	}
 
-	mean := int(totalTime/time.Millisecond) / len(result)
+	completedRequestCount := len(result)
 
-	fmt.Printf("Complete requests : %d\n", len(result))
+	if completedRequestCount > 0 {
+		mean := int(totalTime/time.Millisecond) / completedRequestCount
+		fmt.Printf("Complete requests : %d\n", completedRequestCount)
+		fmt.Printf("Time per request  : %v [ms] (mean)\n", mean)
+	}
+
 	fmt.Printf("Failed requests   : %d\n", failedCount)
-	fmt.Printf("Time per request  : %v [ms] (mean)\n", mean)
 }
 
 func get(url string) (*responseMeta, error) {
